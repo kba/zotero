@@ -446,6 +446,58 @@ Zotero.Utilities.Internal = {
 	},
 	
 	
+	saveDocument: function (document, destFile) {
+		const nsIWBP = Components.interfaces.nsIWebBrowserPersist;
+		let wbp = Components.classes["@mozilla.org/embedding/browser/nsWebBrowserPersist;1"]
+			.createInstance(nsIWBP);
+		wbp.persistFlags = nsIWBP.PERSIST_FLAGS_REPLACE_EXISTING_FILES
+			| nsIWBP.PERSIST_FLAGS_FORCE_ALLOW_COOKIES
+			| nsIWBP.PERSIST_FLAGS_AUTODETECT_APPLY_CONVERSION
+			| nsIWBP.PERSIST_FLAGS_FROM_CACHE
+			// Mostly ads
+			| nsIWBP.PERSIST_FLAGS_IGNORE_IFRAMES;
+		
+		let encodingFlags = 0;
+		let filesFolder = null;
+		if (document.contentType == "text/plain") {
+			encodingFlags |= nsIWBP.ENCODE_FLAGS_FORMATTED;
+			encodingFlags |= nsIWBP.ENCODE_FLAGS_ABSOLUTE_LINKS;
+			encodingFlags |= nsIWBP.ENCODE_FLAGS_NOFRAMES_CONTENT;
+		}
+		else {
+			encodingFlags |= nsIWBP.ENCODE_FLAGS_ENCODE_BASIC_ENTITIES;
+			
+			let ext = Zotero.File.getExtension(destFile);
+			if (ext.length) {
+				filesFolder = Zotero.File.pathToFile(
+					// Strip extension (including period)
+					destFile.path.substr(0, destFile.path.length - (ext.length + 1))
+					// TODO: Localize here and in attachmentsTest#importFromDocument()
+					// Mirrors ContentAreaUtils.stringBundle.formatStringFromName("filesFolder", [nameWithoutExtension], 1);
+					+ "_files"
+				);
+			}
+		}
+		const wrapColumn = 80;
+		
+		var deferred = Zotero.Promise.defer();
+		wbp.progressListener = new Zotero.WebProgressFinishListener(function () {
+			deferred.resolve();
+		});
+		
+		wbp.saveDocument(
+			document,
+			destFile,
+			filesFolder,
+			null,
+			encodingFlags,
+			wrapColumn
+		);
+		
+		return deferred.promise;
+	},
+	
+	
 	/**
 	 * Launch a process
 	 * @param {nsIFile|String} cmd Path to command to launch
