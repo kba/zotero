@@ -330,6 +330,11 @@ Zotero.Server.DataListener.prototype._generateResponse = function(status, conten
 			response += "Access-Control-Allow-Headers: Content-Type,X-Zotero-Connector-API-Version,X-Zotero-Version\r\n";
 		}
 	}
+	if (Zotero.isServer) {
+        response += "Access-Control-Allow-Origin: *\r\n";
+        response += "Access-Control-Allow-Methods: POST, GET, OPTIONS\r\n";
+        response += "Access-Control-Allow-Headers: Content-Type,X-Zotero-Connector-API-Version,X-Zotero-Version\r\n";
+    }
 	
 	if(contentType) {
 		response += "Content-Type: "+contentType+"\r\n";
